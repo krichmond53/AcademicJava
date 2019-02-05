@@ -1,0 +1,470 @@
+/**	Kevin Richmond
+ * CMSC 435 - Intro to Data Science
+ * Fall 2017
+ */
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+public class imputation {
+    
+	public static String[][] make(String n){
+		Scanner test = inputFile(n);
+		Scanner test1 = inputFile(n);
+		int[] tableSize = findSize(test);
+		String[][] flat004 = csvToArray(test1,tableSize);
+		printArray(flat004);
+		return flat004;		
+	}
+	
+	public static void main(String[] args) {
+	
+		// Take in .csv file and store in an object or 2D array
+//		Scanner missing004 = inputFile("assignment2_dataset_missing004.csv");
+//		Scanner missing20 = inputFile("assignment2_dataset_missing20.csv");
+//		Scanner sizeFile = inputFile("assignment2_dataset_missing20.csv");
+//		int[] tableSize = findSize(sizeFile);  // 0 = # cols, 1 = # rows
+		
+		
+//	    int[] tableSize = findSize(sizeFile);
+//	    String[][] flat004 = csvToArray(missing004b,tableSize);
+	    
+		Scanner test = inputFile("test.csv"); 
+		int[] tableSize = findSize(test);  // 0 = # cols, 1 = # rows
+		    
+	    // Compute value to be imputed for each feature based on specific algorithm
+	    // Mean Imputation - (Average of all known values for feature (all values the same)
+//	    String[][] mean004 = mean(make("test.csv"), tableSize);
+//		printArray(mean004);  	/// Test function to see if array is correct
+//	    String[][] meanCond004 = meanCond(make("test.csv"), tableSize);
+//		printArray(meanCond004);  	/// Test function to see if array is correct
+
+//	    String[][] mean20 = mean(flat20, tableSize);
+//	    String[][] meanCond20 = meanCond(flat20, tableSize);
+
+		String[][] hd20 = hd(make("test.csv"), tableSize);
+		printArray(hd20);  	/// Test function to see if array is correct
+//	    String[][] hdCond20 = hdCond(make("test.csv"), tableSize);
+//		printArray(hdCond20);  	/// Test function to see if array is correct
+
+//	    String[][] hd20 = hd(flat20, tableSize);
+//	    String[][] hdCond20 = hdCond(flat20, tableSize);
+	    System.out.println("");
+
+	    
+	    // Conditional mean imputation (MEANc and MEANf)
+	    // Hot deck imputation - Value imputed from most similar entity, cannot have missing value
+	    // Conditional hot deck imputation 
+	    
+	    
+	    
+		// Impute the value for each missing item
+		// Calculation of the imputation error
+	    
+		// Output as .csv file - V00370652_a2_missing004_inputed_algorithm.csv
+		// Display MAE (Mean Average Error) on the screen for each algorithm (8 total)
+	    // DONT FORGET DOCUMENTATION OF 5 questions
+		
+	}
+
+	
+	
+	private static String[][] hd(String[][] hd, int[] size) {
+		System.out.println("Hot Deck Imputation");
+		int row = size[0];
+		int col = size[1];
+		String[][] n = new String[row][col]; 
+		n = hd;
+		int miss = 0;
+		int[] countMissing = new int[col];
+		int[] whereMissing = new int[(row-1)*col]; // Max values missing are ALL of them (- labels)
+
+		double[] rowX = new double[col-1];
+		double[] rowY = new double[col-1];
+		
+		double[][] bad = new double[col*row][col];
+		double[][] good = new double[col*row][col];
+		int badCT = 0;
+		int goodCT = 0;
+		
+		int closestRow = 0;
+		
+		// Skip first row of spreadsheet with titles, but then go through each row
+		for (int i = 1; i<row; i++){
+			boolean x = false;
+			boolean y = false;
+			
+			// Go through each column of the row (-1 removes the class row)
+			for (int j = 0; j<col-1; j++){
+				
+				// If the value is missing, count it, mark it, and add to missing pile
+				if (n[i][j].equals("?")) {
+					countMissing[j]++;
+					whereMissing[miss] = j;
+					miss++;
+					whereMissing[miss] = i;
+					miss++;
+					
+					if (x == false) {
+						x = true;
+						rowX = getRowValues(n,i);
+						bad[badCT] = rowX;
+						badCT++;
+						j=col*2;
+					}
+				}
+				// If all values have been checked for ?, add the row to the good pile
+				if (j == (col-2)) {
+					rowY = getRowValues(n, i);
+					good[goodCT] = rowY;
+					goodCT++;
+				}
+			}
+		}
+		
+		System.out.println("\nRows with no values missing");
+		for (int i = 0; i < good.length; i++ ){
+			for (int j = 0; j < good[i].length; j++){
+				if (good[i][j] > 0){
+					System.out.print(good[i][j] + " ");
+				}
+			
+			}
+			if (good[i][0] != 0){
+				System.out.println("");
+			}
+		}
+
+		System.out.println("\nRows with missing values.");
+		for (int i = 0; i < bad.length; i++ ){
+			for (int j = 0; j < bad[i].length; j++){
+				if (bad[i][j] > 0){
+					System.out.print(bad[i][j] + "\t\t");
+				} else if (bad[i][j] == -1){
+					System.out.print("-1.0000 \t");
+				}
+			
+			}
+			if (bad[i][0] != 0){
+				System.out.println("");
+			}
+		}
+
+
+		
+		double[] nearest = new double[bad.length];
+		double[][] distance = new double[good.length][3]; 		//value, row, column
+		System.out.println("\nEuclidian distance between rows with missing values and full rows.");
+		for (int i = 0; i < bad.length; i++ ){
+			//for (int j = 0; j < (bad[i].length*3); j=j+2){
+				
+				if (bad[i][0] != 0){
+					System.out.println("~~~~~" + (i+1) + "~~~~~");
+					nearest = hotComp(bad[i], good);
+				}
+			//}
+
+		}		
+		System.out.println("");
+		
+		System.out.println("");
+		return n;
+	}
+	
+
+
+	private static double[] hotComp(double[] ds, double[][] good) {
+		double close[] = good[0];
+		double distance = 0;
+		
+		for (int i = 0; i < ds.length;i++){
+			if (ds[i] != 0){
+				for (int j = 0; j <= good[i].length;j++){
+					if (ds[i] == -1 || good[j][i] == -1){
+						close[j] = close[j] + good[j][i];
+						System.out.println("Bad: " + ds[i] + "\tGood: " + good[j][i] + "\tDistnace: "+
+								distance);
+					}
+				}
+			}
+		}
+
+		return close;
+	}
+
+	private static double[] getRowValues(String[][] hd, int row){
+		int col = hd[0].length-1;
+		double[] values = new double[col];
+		
+		
+		for (int i = 0; i < col; i++){
+			if (hd[row][i].equals("?")){
+				values[i] = -1;
+				System.out.print(values[i] + "\t\t");
+			} else {
+				values[i] = Double.parseDouble(hd[row][i]);
+				System.out.print(values[i] + "\t\t");
+			}
+		}
+		System.out.println("");
+		return values;
+	}
+	
+	/**
+	 * Finds the mean of each column conditioned upon whether the row is class F or C, 
+	 * then imputes F means to F columns and C means to C columns
+	 * @param mean - 2D array for imputation
+	 * @param size - # of rows, # of columns
+	 * @return - 2D array with missing values imputed with mean values
+	 */
+	private static String[][] meanCond(final String[][] meanCond, int[] size) {
+		System.out.println("Mean Conditional Imputation (based on Class)");
+		int row = size[0];
+		int col = size[1];
+		String[][] n = new String[row][col]; 
+		n = meanCond;
+		int miss = 0;
+		int countMissing[] = new int[col];
+		int whereMissing[] = new int[(row-1)*col]; // Max values missing are ALL of them (- labels)
+		double[] colValF = new double[col];
+		double[] colValC = new double[col];
+		
+//		System.out.println("# of columns: " + colVal.length +"\n");
+		
+		// Skip first row of spreadsheet with titles, but then go through each row
+		for (int i = 1; i<row; i++){
+			
+			// Go through each column of the row (-1 removes the class row)
+			for (int j = 0; j<col-1; j++){
+				
+				// If the value is missing, count it and mark it
+				if (n[i][j].equals("?")) {
+					countMissing[j]++;
+					whereMissing[miss] = j;
+					miss++;
+					whereMissing[miss] = i;
+					miss++;
+					
+				// Otherwise, add the value to the current column value
+				} else if (n[i][col-1].equals("F")){
+					colValF[j] = colValF[j] + Double.parseDouble(n[i][j]);
+				} else if (n[i][col-1].equals("C")){
+					colValC[j] = colValC[j] + Double.parseDouble(n[i][j]);
+				}
+			}
+		}
+		
+//		// List where missing values are located (row/column)
+//		for (int a : whereMissing){
+//			System.out.print(a + " ");
+//		}
+//		System.out.println("\n");
+		
+		int k = 0;
+		for (double v : colValF){
+			colValF[k] = v/(row-1-countMissing[k]);
+//			System.out.println("F) Column: " + k +" Total: " + v + " Missing: " + countMissing[k] +
+//					" Mean: " + colValF[k] + "\n");
+//			System.out.println("Denom: " + (col-1-countMissing[k]));
+			k++;
+		}
+		
+		int m = 0;
+		for (double v : colValC){
+			colValC[m] = v/(row-1-countMissing[m]);
+//			System.out.println("C) Column: " + m +" Total: " + v + " Missing: " + countMissing[m] +
+//					" Mean: " + colValC[m] + "\n");
+//			System.out.println("Denom: " + (col-1-countMissing[m]));
+			m++;
+		}
+		
+		for (int i = 0; i < whereMissing.length; i= i+2){
+			if (whereMissing[i] == 0 && whereMissing[i+1] == 0){
+				break;
+			}
+			if (n[whereMissing[i+1]][col-1].equals("F")){
+				n[whereMissing[i+1]][whereMissing[i]] = String.format("%.5g",colValF[whereMissing[i]]);
+			} else {
+				n[whereMissing[i+1]][whereMissing[i]] = String.format("%.5g",colValC[whereMissing[i]]);
+			}
+			
+		}
+		
+		return n;
+		
+	}
+
+
+	/**
+	 * Finds the mean of each column then imputes it to all missing values of that row
+	 * @param mean - 2D array for imputation
+	 * @param size - # of rows, # of columns
+	 * @return - 2D array with missing values imputed with mean values
+	 */
+	private static String[][] mean(final String[][] mean, int[] size) {
+		System.out.println("Mean Imputation");
+		int row = size[0];
+		int col = size[1];
+		String[][] n = new String[row][col]; 
+		n = mean;
+		int miss = 0;
+		int countMissing[] = new int[col];
+		int whereMissing[] = new int[(row-1)*col]; // Max values missing are ALL of them (- labels)
+		double[] colVal = new double[col];
+		
+		// Skip first row of spreadsheet with titles, but then go through each row
+		for (int i = 1; i<row; i++){
+			
+			// Go through each column of the row (-1 removes the class row)
+			for (int j = 0; j<col-1; j++){
+				
+				// If the value is missing, count it and mark it
+				if (n[i][j].equals("?")) {
+					countMissing[j]++;
+					whereMissing[miss] = j;
+					miss++;
+					whereMissing[miss] = i;
+					miss++;
+					
+				// Otherwise, add the value to the current column value
+				} else {
+					colVal[j] = colVal[j] + Double.parseDouble(n[i][j]);
+				}
+			}
+		}
+		
+		int k = 0;
+		for (double v : colVal){
+			colVal[k] = v/(row-1-countMissing[k]);
+			k++;
+		}
+		
+		for (int i = 0; i < whereMissing.length; i= i+2){
+			if (whereMissing[i] == 0 && whereMissing[i+1] == 0){
+				break;
+			}
+			n[whereMissing[i+1]][whereMissing[i]] = String.format("%.5g",colVal[whereMissing[i]]);
+		}
+		
+		return n;
+		
+	}
+
+	/**
+	 * Finds all '?' in the table and puts them in an array.
+	 * @param n - 2D array
+	 * @return - array of missing value locations (0 Col 1 row 2 col 3 row)
+	 */
+    private static int[] findMissing(String[][] n) {
+		int[] missing = new int[6];		// Use findSize to determine how many values can be missing
+		int count = 0;
+		
+		for (int i=0; i<n.length;i++){
+			for(int j=0; j< n[i].length;j++){
+				if (n[i][j].equals("?")){ 
+					missing[count] = i;
+					count++;
+					missing[count] = j;
+					count++;
+					System.out.println("Found: " + n[i][j] + " at " + i + " " + j);
+				} else {
+//					System.out.println(n[i][j]);
+				}
+			}
+		}    	
+		
+		
+		return missing;
+	}
+    
+    
+	/**
+	 *  Print dataset to screen
+	 * @param n - 2D array of data
+	 */
+	private static void printArray(String[][] n){
+		for (int i=0; i<n.length;i++){
+			for(int j=0; j< n[i].length;j++){
+				if (i == 0){ 
+					System.out.print(n[i][j] + "\t");
+				} else {
+					System.out.print(n[i][j] + "\t\t");
+				}
+			}
+			System.out.print("\n");
+		}
+		System.out.print("\n");
+	}
+	
+	/**
+	 * Determines the number of columns and rows in a CSV files
+	 * @param file - Scanner object of CSV file
+	 * @return - Integer array where [0] is # of columns and [1] = # of rows
+	 */
+	private static int[] findSize(Scanner file) {
+		
+		int[] size = new int[2];
+		String feature[] = file.next().split(",");
+		size[1] = feature.length;
+//		System.out.println("Number of columns: " + size[0]);
+		
+		while (file.hasNextLine()){
+			size[0]++;
+			file.nextLine();
+		}
+//		System.out.println("Number of rows: " + size[1]);
+		
+		return size;
+	}
+
+	/**
+	 * Converts a CSV file into a 2D array
+	 * @param file - Scanner object of CSV file
+	 * @param size - Integer array of # of columns and # of rows
+	 * @return - 2D array of strings representing the CSV file
+	 */
+	private static String[][] csvToArray(Scanner file, int[] size) {
+    	int row = size[0];
+    	int col = size[1];
+//    	System.out.println("Rows: "+ row +" Columns: "+ col);
+    	
+    	String dataset[][] = new String[row][col];
+    	
+    	while(file.hasNextLine()){
+	    
+	    	for (int i = 0; i < row; i++){
+	    		String feature[] = file.next().split(",");
+		    	
+	    		for (int j = 0; j < col ;j++){
+	    			dataset[i][j] = feature[j];
+//	    			System.out.println("Row: " + i + " Column: "+ j + ". " + dataset[i][j]);	
+		    		
+	    		}
+	    	}
+
+//	    	System.out.println("Number of rows: " + row++ +"\n");
+	    	break;
+	    }		
+	    return dataset;
+	}
+
+	  /**
+	   * Prompts user for a an input file, verifies existing file and returns a
+	   * Scanner object inFile.
+	   * @return Input file inFile.
+	   */
+	  public static Scanner inputFile(String userFile) {  
+
+	   	Scanner inFile = null;
+	   	try {
+	   		FileReader inReader = new FileReader(userFile); 
+	   		inFile = new Scanner(inReader);
+	   	}
+	   	catch (FileNotFoundException e){ 
+	   		System.out.println("Not a good file");
+	   	}
+	   	return inFile;
+	  }
+}
